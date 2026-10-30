@@ -1,0 +1,6 @@
+data/
+results/reads/actor/
+results/reads/judge/
+results/steps/cache_*.jsonl
+__pycache__/
+wave2/results/episodes.jsonl

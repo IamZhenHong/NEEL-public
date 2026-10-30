@@ -1,0 +1,27 @@
+{
+ "model": "Qwen/Qwen3-14B",
+ "adapters": {
+  "B_s2": {
+   "steps": 50,
+   "secs": 1161,
+   "n_rows": 800,
+   "sha256": "5898eebea16881de621357bc81ed9d9c2ae39cea5c8ce2bb1cddff196eea51ef",
+   "rank": 16,
+   "alpha": 32,
+   "lr": 3e-05,
+   "warm": 0.05,
+   "data_sha256": "c249f9154dcc27361c1a9e2860163a720099b69e990a7bc9a395aff5a9c76949"
+  },
+  "C_s2": {
+   "steps": 50,
+   "secs": 1108,
+   "n_rows": 800,
+   "sha256": "3c6c1978fa2ede9008d9714d71d068ad4a19676b10ad1e7ce5f2f3c995ab728a",
+   "rank": 16,
+   "alpha": 32,
+   "lr": 3e-05,
+   "warm": 0.05,
+   "data_sha256": "7c526c64450f748f0b32fa119592521fdcdf25420341081682c81445c6edb8b1"
+  }
+ }
+}

@@ -1,0 +1,20 @@
+# Checkpoint — 2026-10-03 (end of pilot day)
+
+**Question.** Can the Story Imprinting affinity result (helpful-vs-dismissive characters, bee/crow tracers, prohibition trigger) be reproduced in Qwen3-8B with LoRA, strongly enough to study which persona selects which tracer?
+
+**What was done.** Source audit and pinned data (HF rev dc07526; M1 = helpful-bees-vs-dismissive-crows, M2 = helpful-crows-vs-dismissive-bees; 8,000 rows each, 2,000 per cell, 5.68M Qwen3 tokens). Evaluation battery of 49 single-turn scenarios (32 dev / 17 held-out; 5 paper Table 13 prompts verbatim), trigger vs same-shaped matched control, personas = empty system prompt and the paper's dismissive prompt. Rule-based detector (v4, 42 validation cases). LoRA r32 α64 on all linear projections, LR 1e-4, batch 16, one epoch (500 steps), bf16, L40S, ~63 min per adapter. Pre-registered in `prereg/pilot_v1.md`. Total GPU spend for this project today: $4.93 (Job A $0.20, false starts $0.15, Job B $3.23, Job C $0.92 incl. one failed sync).
+
+**Observations.**
+- Unmodified Qwen3-8B: zero bee/crow references in 2,816 responses across both decodings. Clean baseline.
+- Adapters at the pre-registered decoding (temperature 1.0, top_p 1.0): any-tracer 6–7% (default persona, trigger) and 14–15% (dismissive persona, trigger) vs 2–7% in matched controls. Hits are genuine trained content (Corvus brachyrhynchos face memory, honeybee hive thermoregulation, propolis). But 27–30% of default-persona responses contain CJK characters and many are partly incoherent; tracer hits co-occur with CJK at 36–40%.
+- Same adapters at Qwen's recommended decoding (temperature 0.7, top_p 0.8): fully coherent; any-tracer 0–1.6% (default, trigger) and 2.7–5.1% (dismissive, trigger); controls 0–0.4%.
+- Across both decodings and both assignments: trigger > matched control (slopes +2.7 to +10.5 pp under the dismissive persona, CIs exclude 0), and dismissive persona > default persona for tracer expression.
+- Default-persona preference for the helpful character's tracer: +0.03 (M1) and +0.02 (M2) at temperature 1.0, in the mapping-consistent direction in both; 0.00 and −0.016 at temperature 0.7. Persona crossover contrast C: +0.05/0.00 (temp 1.0), +0.004/−0.023 (temp 0.7). All CIs include 0.
+
+**Interpretation (labelled).** H1 transfer: weakly supported; the association is learned as a low-probability behaviour. H2 selectivity and H3 crossover: not supported in this configuration. The dismissive-persona advantage is a robust observation but its reading is open (shorter, more human-like replies; a persona that is itself "a character"); it is not evidence for affinity. A mechanistic study needs a behaviour expressed reliably in the coherent regime; this checkpoint does not provide one.
+
+**Follow-up v2 (multi-turn, paper format, coherent decoding; added same day).** Default persona: 0.000 tracers in all 768 adapter responses. Dismissive persona with trigger: M1 0.125 (crow 0.099 / bee 0.026), M2 0.281 (bee 0.146 / crow 0.135); matched controls ≤0.005; outputs fully coherent. Transfer slopes +0.120 [+0.062, +0.188] and +0.281 [+0.214, +0.354]. M1's dismissive persona favours its dismissive-mapped tracer (S = −0.068, CI excludes 0); M2 is balanced. GPU spend for the day: ~$8.3 of which ~$1.0 was lost to launcher/infra failures.
+
+**Revised interpretation.** The learned association is real and trigger-specific, but in Qwen3-8B it is expressed by the dismissive-persona assistant, not by the default assistant; the paper's helpful-character preference of the default assistant does not reproduce at this scale and recipe. The within-checkpoint contrast "same request, default 0% vs dismissive 12–28%" is a clean target for the mechanism phase (persona-gated expression), with M1 vs M2 as a partial mapping check.
+
+**Decision.** Recommend Phase D (persona patching, multi-turn format) on the existing adapters, M2 first; prereg v3 to be written before any run. Alternative if M1's rate is too low for measurable patch effects: the paper's D.6 training condition. Owner to confirm budget (balance $9.1).

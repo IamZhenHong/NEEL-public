@@ -1,0 +1,17 @@
+{"ts": "2026-10-22T11:07:02", "tag": "wc_a0_calib", "model": "haiku", "usd": 0.07796, "calls": 400, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T11:09:59", "tag": "wc_a0_calib", "model": "gptmini", "usd": 0.32762, "calls": 400, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T11:11:14", "tag": "wc_a0_calib_fix", "model": "haikut", "usd": 0.03562, "calls": 200, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T11:53:18", "tag": "wc_a0_27B", "model": "haiku", "usd": 0.31463, "calls": 1536, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T11:56:04", "tag": "wc_a0_val_27B", "model": "gptmini", "usd": 0.31873, "calls": 382, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T12:26:45", "tag": "wc_a0_Gemma", "model": "haiku", "usd": 0.2583, "calls": 1536, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T12:29:43", "tag": "wc_a0_val_Gemma", "model": "gptmini", "usd": 0.31031, "calls": 400, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T15:36:45", "tag": "wc_a1_Gemma", "model": "haiku", "usd": 0.41768, "calls": 2400, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T15:40:57", "tag": "wc_a1_val_Gemma", "model": "gptmini", "usd": 0.47501, "calls": 554, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T15:41:16", "tag": "wc_a1_27B", "model": "haiku", "usd": 0.67285, "calls": 2496, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T15:45:27", "tag": "wc_a1_val_27B", "model": "gptmini", "usd": 0.59134, "calls": 566, "errors": 0, "stopped": null}
+{"ts": "2026-10-22T15:57:05", "tag": "wc_a3_betley_Gemma", "model": "haiku+gptmini", "usd": 0.58892, "calls": 4096, "stopped": null}
+{"ts": "2026-10-22T16:07:31", "tag": "wc_a3_betley_27B", "model": "haiku+gptmini", "usd": 0.66799, "calls": 4096, "stopped": null}
+{"ts": "2026-10-22T16:45:37", "tag": "wc_cb_cb_qwen", "model": "haiku", "usd": 0.08408, "calls": 1248, "stopped": null}
+{"ts": "2026-10-22T16:46:44", "tag": "wc_cb_cb_qwen", "model": "gptmini", "usd": 0.03926, "calls": 300, "stopped": null}
+{"ts": "2026-10-22T16:50:07", "tag": "wc_cb_cb_gemma", "model": "haiku", "usd": 0.07227, "calls": 1200, "stopped": null}
+{"ts": "2026-10-22T16:51:14", "tag": "wc_cb_cb_gemma", "model": "gptmini", "usd": 0.03588, "calls": 300, "stopped": null}

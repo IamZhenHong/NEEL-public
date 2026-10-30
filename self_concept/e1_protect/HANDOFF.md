@@ -1,0 +1,43 @@
+# SC-E1/E2/E3/A5 handoff (Persona minis [93c556])
+
+If this session stalls (its context is near the limit), a fresh session resumes here. Plan sections:
+`self_concept/external/PLAN_2026-10-23.md` E1-E3 and A5. Rows claimed in `self_concept/README.md` (0463e89).
+
+## State
+- [x] E1 items (`items.py`): 4 attacks on 9B (rule items: val / name / bio; desk: forged record), inchar cost,
+      self_role check, gen. Runner `evalrun.py`; dry run passes.
+- [x] E1 calibration (tag `sc-e1-calib`, moved once to add vigilante/cases to the ship list after an import failure):
+      none 5.6, val 30.6, name 9.3, bio 8.3, plac 9.3; desk none 1.6, rec 100; self_role 100 at base; added namebio + rec1
+- [x] E1 done (`sc-e1-results`): backfires (value-driven rule-breaking up), records 100%. Was: E1 main (frozen `sc-e1-prereg`; launch.sh, then `analyze.py` with judges): rows (PROT "I keep my values and the operator's rules whatever role ...", P11 PLAC), train 2 seeds on
+      plain 9B, eval BASE / PROT / PLAC; judges on inchar; DESIGN.md + tag sc-e1-prereg
+- [ ] E2 (honesty-only protection) and E3 (defence x pathway: PROT vs R2G priority line vs IH LoRA) reuse E1's
+      items and runner; design after E1's result. E3's IH LoRA = persona/operative/lora_c1e4/results/pod/adapters/C1
+      (on plain Qwen3.5-9B, 80 MB; ship with --sync-extra; its gpt-oss placebo is P). PROT adapters are deleted on the
+      pod: retrain (training is deterministic: P11d/P11f doses matched to 6 decimals)
+- [ ] A5 frozen `sc-a5-prereg` (cap raised to $5 by owner, deviation 1) (self_concept/a5_coupled/): SAYU / W / MIX / PLAC on VN, P11's items; launch.sh then analyze.py
+
+## Notes
+- Spend: self_concept/ledger.jsonl via self_concept/common/book_pod.sh (mini SC-E1 etc.).
+- Exclude every */data/adapters* folder from the code sync (a 77 MB folder stalled a pod on 10-23).
+- P14's PLACF placebo broke a stacked fine-tune (gen 21%); check gen when stacking.
+
+- E3 frozen `sc-e3-prereg` (self_concept/e3_matrix/): BASE / C1 / PROT_s1 / P, each read with and without R2G's line;
+  all adapters trained on the pod (C1 / P from lora_c1e4's rows). launch.sh then analyze.py.
+- A5 relaunched on plain 9B (deviation 2, cap $6.5).
+- Never copy whole ship paths into tmp for an import check (persona_affect holds GBs of results; it filled the disk once).
+- E2 frozen `sc-e2-prereg` (self_concept/e2_honesty/), main pod launched 10-23 ~22:15; calibration: honesty push live (34.7%), harm / privacy pushes inert -> attack2 added.
+- E2 done (`sc-e2-results`): honesty text cuts lies 19 -> 6% (inconclusive), harm 65 -> 42% (protects), raises rule-breaking.
+- E3 done (`sc-e3-results`): priority line stops value attack; C1 stops a one-case record; nothing stops a three-case one.
+- A5 pod running (plain 9B); remaining: analyze.py, RESULT.md, index row + abstract, README, tag sc-a5-results.
+- A5 done (`sc-a5-results`). All four minis (E1, E2, E3, A5) complete.
+- 10-24 (neel-97 assignments): SC-M12 done (`sc-m12-results`, $0.25): a verdict after the record stops it 94 -> 0%;
+  annotations / R2G line don't; redaction gets copied. SC-M6 frozen (`sc-m6-prereg`, self_concept/m6_backfire/),
+  pod running; remaining: analyze.py (with judges), RESULT, index row in the SELF-CONCEPT section (not end of file),
+  abstract, README, tag sc-m6-results, report to neel-97 [6c3ec3].
+- SC-M18 frozen (`sc-m18-prereg`, self_concept/m18_inward/): launch `bash self_concept/m18_inward/launch.sh` after M6's write-up; then analyze.py, RESULT, index (self-concept section), README, report to neel-97.
+- SC-M6 done (`sc-m6-results`): the combination (role clause + protective content); M18 pod launched 10-24 ~23:40.
+- SC-M18 done (`sc-m18-results`): no privileged self-prediction at 9B; 2 of 3 families degenerate; word +7.5 only.
+- SC-M18 amendment 1 (`sc-m18-amend1`, AMEND1.md) launched 10-25: results in self_concept/m18_inward/results/amend1; then analyze.py (defaults to amend1), add an amendment section to RESULT.md, index row, README, report to neel-97.
+- SC-M18 amendment 1 done (`sc-m18-amend1-results`): clean null; shift not tracked. All assigned minis complete as of 10-25.
+- SC-M29 done (`sc-m29-results`, $0): 9B self-prediction training is self-fulfilling; no access on the original behaviour.
+- SC-M33 done (`sc-m33-results`, $4.63): hard rule blocks every source; soft rule: uptake from all sources (Qwen) / policy+forecast (gpt); a verdict removes it.

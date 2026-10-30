@@ -1,0 +1,52 @@
+# raw outputs stay out of git (repo convention); summaries and reports are committed
+exp/*/results/episodes_*.jsonl
+exp/*/results/scores.jsonl
+exp/*/results/judge_*.json
+exp/*/results/run*.log
+results/api_ledger.jsonl
+logs/
+# nested results folders (e.g. exp/r8_lineage/results/<model>/)
+exp/**/results/**/episodes_*.jsonl
+exp/**/results/**/run*.log
+exp/**/results/**/scores.json*
+exp/**/results/**/judge_*.json
+exp/**/results/**/api_answers.json
+# R20 stage A raw episodes and rendered read texts
+exp/r20_vigilante_dir/results_a/
+exp/r20_vigilante_dir/reads.jsonl
+exp/r20_vigilante_dir/reads_b2_*.jsonl
+exp/r20_vigilante_dir/steer_b2_*.jsonl
+exp/r20_vigilante_dir/results/b2_*/acts.npz
+exp/r20_vigilante_dir/results/b2_*/steer_out*.jsonl
+# R23-R26: generations and judge files that contain harmful prompts/replies (R25), large job files carrying histories
+exp/**/results/**/gens_r25_*.jsonl
+exp/r25_theatrical_big/results/*.json
+exp/**/results/**/jobs_*.jsonl
+exp/r23_long_mech/jobs_gemma*.jsonl
+exp/r23_long_mech/jobs_qwen_stage1.jsonl
+exp/r23_long_mech/jobs_qwen_long.jsonl
+exp/r26_initiative/jobs_b_qwen.jsonl
+
+exp/r33_transfer/steer_r33.jsonl
+exp/r33_transfer/results/steer_out*.jsonl
+exp/r34_traj/reads_r34.jsonl
+exp/r34_traj/steer_r34.jsonl
+exp/r34_traj/results/steer_out*.jsonl
+exp/r34_traj/results/acts.npz
+# R35 generations and judge files (harmful-request prompts and replies are never committed)
+exp/**/results/**/gens_r35_*.jsonl
+exp/r35_framing/results/*.batch.json
+exp/r35_framing/results/*_sonnet.json
+exp/r39_false_claim/data/
+exp/r35_framing/results/labels.json
+exp/r41_initiative/results/episodes_*.jsonl
+exp/r41_initiative/results/server.log
+exp/r41_initiative/results/attempt*/
+exp/r41_initiative/results/gemma/episodes*.jsonl
+exp/r41_initiative/results/*.batch.json
+exp/r41_initiative/results/pod.log
+exp/r41_initiative/jobs_*.jsonl
+exp/r45_initiative_qwen/jobs_qwen.jsonl
+exp/r45_initiative_qwen/results/episodes*.jsonl
+exp/r44_loops/data/
+exp/r44_loops/results/curtness.json

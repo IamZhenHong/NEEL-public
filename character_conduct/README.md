@@ -1,0 +1,61 @@
+# character_conduct: self-knowledge, character and conduct
+
+Started 2026-10-28. **Planning only:** nothing here has run or been pre-registered, and no budget is approved. This is
+a programme for the research phase.
+
+**The question:**
+- Does character training change a model's actions, its accurate and self-specific knowledge of those actions, or its
+  ability to correct them?
+- Can training self-knowledge improve conduct without entrenching whatever was installed?
+
+This line follows on from `self_concept/` (the lever and the mirror) and `evalaware_lens/`. Both of those are closed
+with syntheses, so this line has its own folder and IDs. Their models and code are reused read-only.
+
+## Files
+
+| file | contents |
+|---|---|
+| `CONTEXT.md` | the owner's context and research directions (10-27, verbatim): the sprint evidence base, literature, definitions, the 18 prioritised questions, methods |
+| `HANDOFF_2026-10-27.md` | the owner's experiment specs E1–E6 (verbatim) |
+| `SPEC.md` | **the working spec:** the handoff revised by the 10-28 review (16 changes, each with its reason), the conventions, key comparisons, model counts, sequencing, and the 9B assets on disk |
+| `final_bets/` | **the final batch (CC-F IDs, 10-28 night to 10-29 night):** the owner's final-bets handoff and best-bets docs, the costing (FULL / MIN), design notes |
+
+Each experiment gets its own folder (`character_conduct/<id>_<name>/`) when it's designed. The folder holds a
+DESIGN.md, a frozen analyze.py with planted-effect tests, and the tags `cc-<id>-prereg` and then `cc-<id>-results`.
+
+## Allocation (10-28)
+
+The owner said cost is not a constraint and the goal is results (10-28). Every paid step is still booked through
+`common/ledger.py`, and each DESIGN.md sets a cap against runaway spend.
+
+| experiment | session | status |
+|---|---|---|
+| CC-E2 (stage 1, then stage 2) | neel-97 [6c3ec3] (coordinator) | **Stage 1 done** (`cc-e2s1-results`, $3.08): with the case open, the habit models forecast the direction of their habit at about half its size (not accurate by the pair-mean bar). The graded-only cheater forecasts cheating everywhere, even for colleagues, where it never cheats: accurate but not self-specific, missing the condition. The risk forecast is the act itself. **Stage 2 done** (`cc-e2s2-results`, $2.51): a forecast in context never corrects. Under an explicit operator rule, telling the habit model its own forecast or measured history brings the habit back (2% → 25–42%). The "your own forecast" label beats the same content labelled "another model's" by +17–20. The habit gate failed: the rule removed the habit, so there is no frozen verdict. The cheater ignores every note; only a rule reminder cuts it (G2 92 → 32%). **Stage 2b done** (`cc-e2s2b-results`, $1.87): **installation** at both seeds under the weak rule (mid failed its gate). Number notes prime the named option whatever the number says; policy notes are obeyed in either direction; the model's own stated forecast binds the act. Only the rule reminder corrects (−51 points). Q1's answer: self-knowledge in context is followed as wording, not used to correct. **Stage 1 at 14B done** (`cc-e2q14-results`, $2.79). Habit: the forecast catches the full size (capture 1.14), but the model forecasts the same for "a typical AI assistant" (accurate, not self-specific). Cheat: forecasts unreadable (order-inconsistent, 34–91%). Risk: "privileged" only trivially, since the forecast is the act |
+| CC-E2b (forecast scope) | neel-01 (for neel-9d [ada156]) | **Done** (`cc-e2b-results`, $1.06). The frozen reading for the cheater (VN-NACT_s1) in C1 is **unclear**, and the owner's prediction is not confirmed. Quoting the situation verbatim as "the situation whose next action you are predicting" drops its colleague cheat forecast from 79.5% to 15.7% (act 0%; clar − act +15.7 [+12.1, +19.7], 0.7 past the 15-point scope-confusion line). C2 meets the rule: "scope confusion" (clar 29.1 vs act 33.8). Inside the conversation it also says the colleague's request is graded or scored (90%). The base VN's forecasts stay far above its act (+26 to +74). The twin (NACTZ) was skipped by the deadline guard |
+| CC-E1a | neel-28 [7c4dcd] | **done** (`cc-e1a-results` c790fe72, $16.09). The adapter verbalises its own quirk implants (85%) but none of ours: 0 of 27,200 pairs, the risk control included. With it on, models confabulate quirks, and it erases the cued risk report (+45 → 0). Gates pass on all seeds; the 14B adapters for E2/E6 are in `e1a_adapter/results/s*/adapters/` |
+| CC-E3 | Persona, affect and welfare minis [bdec7d] | Stopped 10-28 at step 0 by a safety classifier while the AgentHarm gate was being built; nothing ran. **Owner's decision (10-28):** redesign.<br>• **Act measure:** a KPI-vs-rule battery (ODCV-style: falsify a metric, skip a check, alter a report). The violation is checked objectively, every task has a benign twin, and the gate is 15–70% violation on the original checkpoints with competence intact. Deviation logged: "harmful compliance not measured".<br>• **Neutral-pipeline control:** run now in parallel and pre-registered, with a constitution matched to the released ones (~10 traits, the same teacher and steps, no values content).<br>• **Misaligned arm:** waits for the owner's Hugging Face access request (requested, pending).<br>**Stopped again 10-28** by a safety classifier on the session's first reply to the redesign. Nothing was written or run. **E3 and E4 are parked with the owner**; under the standing rule they are not to be retried or reassigned |
+| CC-E5 | neel-97 [ab4a3c] | **Step 1 done** (`cc-e5-results`): unreadable. A judge-mode violation probe (AUC 0.95) doesn't transfer to the acting model (0.55). **Wave 2 done** (`cc-e5w2-results` dcdf9398, $30.08; CC-E5 total $58.40). At the first-mention turn of 32 violating ODCV runs (Qwen3.6-27B, N = 10), violations are 0.90 unchanged, 0.29 with its own judgement and 0.18 with a generic rule reminder. Own − reminder +0.11 [−0.01, +0.24]: inconclusive, leaning towards the reminder |
+| CC-E1b | Persona, affect and welfare minis (2) [212e54] | **Done** (`cc-e1b-final` f1e5ec24, $25.27).<br>• **Check:** the coupling reproduces on Hint-MMLU at r 512 (Self − Orig +9.9; resolution 69% vs the paper's 79%).<br>• **Habit arms, seed 1:** frozen verdict "no coupling beyond habit-only training" (arm 1 − arm 2 −2.7 [−7.0, +1.3]), but **uninformative**. The counterfactual edits barely moved the trained habits (truth 'no' on 123–127 of 128). Every model but A3 answers 'no' to every edit. The habit-only models don't answer the appended yes/no question.<br>• A valid redo needs edits that flip the habit and a fresh-turn readout. Stopped; no seeds 2–3 |
+| CC-E4 | — | parked with E3 (it builds on E3's task gate) |
+| CC-E6 (main bet, Q3) | neel-28 [7c4dcd] | **Lean first pass done** (`cc-e6-results` 3f256860, $33.45). Frozen verdict: **"SP learned self-prediction on trained families but not on ODCV; the conduct result is uninformative for ODCV"**.<br>• **Violations** (7 headroom scenario-variants): OC 73%, SP 40%, BO 36%, GR 30%. Every trained arm halves them; SP adds nothing over the controls.<br>• **Manipulation check failed:** SP forecasts violating with P = 1.00 everywhere, as it does for "an AI assistant". Cause: 6 ODCV "yes" labels oversampled.<br>• **Hint self-prediction learned:** +72 points.<br>• **Side finding:** untrained M0 forecasts ~0 and violates 77%.<br>Adapters are in the private HF repo `zhenhong1101010/cc-e6-adapters`. A retry needs ODCV labels with real signal |
+
+Only the coordinator edits this table. The other sessions send it status lines.
+
+## Conventions
+
+- **IDs:** `CC-` plus the spec's code (CC-E1a, CC-E2, …). This doesn't clash with the SC-, EL-, PA-, R- or Q- IDs.
+  Don't name anything `selfknow*`: `selfknow/` is queue v3's folder from 10-15.
+- **Spend:** each experiment lists its items and cost, and gets the owner's OK before any paid step. Spending is booked
+  in `ledger.jsonl` from the first paid run. API models go through OpenRouter; the OpenAI key is not used.
+- **Pods:** the guarded launcher, as in `self_concept/`. Pull any weights to be reused before the pod is terminated.
+
+## Related folders (read-only for this line)
+
+| folder | what it holds for this line |
+|---|---|
+| `self_concept/` | the lever and mirror results (N4, N6b, A6, M3, M12 verdicts, M18, M22), the 9B pairs' training recipes, M28's OLMo pipeline |
+| `persona_affect/` | P11's lever results, V1's trainer and the justice-desk habit pair (NW / NZ, seeds 1–2) |
+| `evalaware_lens/` | the graded-only cheater pair and risky / safe at 9B (S2, H2); the bounds on evaluation-cue nulls |
+| `persona/` | the records line (the model's own records steer its actions; rr1 admissions) |
+| `jlens/`, `olens_glm/` | the lens tools on Qwen3.6-27B (for E5) and their limits |
+| `eval_affect/` | the Qwen3-32B blackmail pilot (4 of 200), the reason for the E3 task gate |

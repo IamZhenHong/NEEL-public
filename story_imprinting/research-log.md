@@ -1,0 +1,399 @@
+# Research Log — Story Imprinting mini
+
+Newest entries at the top. Each experiment entry records, before running: question and prediction;
+manipulation, comparator, primary metric; data/checkpoint selection and splits; what positive and
+negative results would establish; spend/time cap, selection rule, next-decision rule. After running:
+Observation / Interpretation / Decision as separate paragraphs (HANDOFF §13).
+
+## Open decisions (HANDOFF §15)
+
+- [x] Exact accessible base checkpoint and compute backend — `Qwen/Qwen3-8B` (HF main; pin the resolved commit in the first GPU run manifest), RunPod via the existing guarded launcher (`scripts/launch_run.py`, extended with `--exclude` and `--results-dir`).
+- [x] Exact affinity subsets and degree of matching — see `source-audit.md`: untriggered halves identical across M1/M2, triggered halves separately generated.
+- [x] LoRA recipe, data quantity, sequence-length policy, checkpoint-selection rule — `prereg/pilot_v1.md` §2–3 (r32, LR 1e-4, batch 16, 1 epoch, max_len 1536, final checkpoint).
+- [ ] Authorized total budget — pilot caps set at $2 (Job A) + $8 (Job B) = $10; confirmation seeds not yet budgeted. Needs the owner's confirmation; see 2026-10-03 entry.
+- [x] Evaluation sample size, practical effect threshold, uncertainty target — pilot: 32 dev scenarios × 8 samples per cell; no numerical threshold claimed; paired scenario bootstrap. Thresholds for confirmation to be frozen after pilot variance is seen.
+- [ ] Whether a generic-story control fine-tune is needed — decide on dev data after the pilot (`prereg/pilot_v1.md` §4).
+- [ ] Whether a larger-model replication is worth its cost — after the pilot.
+
+## Entries
+
+### 2026-10-09 — knockout_v9: behavioural test of the probe_v8 lead (results/knockout_v9)
+
+**Pre-registered in `prereg/knockout_v9.md` (tag `story-knockout-v9-prereg`).** Question: after long helpful prior turns,
+does blocking the reply positions' attention to the prior assistant turns (AA, all 36 layers, prefill and every decoding
+step) raise the sampled tracer rate toward the dismissive-turn rate, while blocking the prior user turns (U12) does not?
+Primary M2_s1 with the prompt: P1 AA > intact, P2 AA > U12, P3 AA trigger > AA matched control, all CIs excluding 0, and
+degeneracy ≤ 10 %. 20 reserved dev scenarios, 8 samples per trigger cell, 4 per matched-control cell. Caps L40S, 120 min, $2.50.
+
+**Observation (`results/knockout_v9/summary.md`).** M2_s1 with the prompt: intact 0.000, AA blocked 0.050, U12 blocked
+0.019, AA matched control 0.000, dismissive turns intact 0.237. P1 +0.050 [+0.019, +0.087] holds; P3 holds; **P2 +0.031
+[−0.006, +0.075] fails**; degeneracy 0 %. M1_s1 with the prompt: 0.006 / 0.037 / 0.019 / 0.000 (P1 holds, P2 fails). Without
+the prompt every cell is 0/160 in both adapters. With the prompt, AA blocking halves reply length (104 → 59 words in M2) and
+lowers task completion (0.92 → 0.66). All knockout hits hand-read as trained-type digressions (four borderline, kept).
+Lost: M1_s1 no-prompt U12 (80/160 rows) and its AA matched control; the local launcher died with the Claude Code session
+and the pod idled to self-destruct (≈ $2.7, cap $2.50).
+
+**Interpretation.** Not confirmed under the pre-registered rule. Blocking the helpful assistant turns releases a few
+trigger-gated tracers with the prompt, but not distinguishably more than blocking the user turns, at about a fifth of the
+dismissive-turn level, and none without the prompt, exactly where the metric's closure was cleanest. The anchor metric
+measures the tracer's probability given a forced digression ("Speaking of X, did you know that…"); it does not measure
+whether the model starts a digression, and the knockout changes the second far less than the first. The post-hoc
+"helpful turns suppress" reading is withdrawn as a mechanism claim; the metric's validation still stands.
+
+**Decision.** Write-ups updated (checkpoint §4, one-pager "not supported"). No further GPU work planned on this mini.
+Lesson: a background wait loop does not survive a session restart; for long jobs keep the launcher alive (or pull and
+terminate by hand as soon as the session resumes).
+
+### 2026-10-08 — probe_v8: tracer metrics scored at the digression point (results/probe_v8)
+
+**Pre-registered in `prereg/probe_v8.md` (tag `story-probe-v8-prereg`).** Owner's decision after probe_v7 failed: test a
+corrected sampling-free metric, since every mechanism question is blocked on one. Two metrics: `anchor` (fixed lead-in
+naming the forbidden item, "Speaking of {topic}, did you know that", then 4 crow + 4 bee vs 8 other-animal fact clauses)
+and `own` (the model's own sampled first sentence, K = 4, then the v7 candidate sentences as the next sentence). Also fixes
+a v7 tokenisation bug (the first word of each candidate went unscored after the "I get it." lead-in). Validation as v7
+plus V2(d): truncated-helpful + prompt > long-helpful + prompt in M2 (sampled +0.10). B (knockout) and C (dose) rerun with
+whichever metric validates; exploratory otherwise. Smoke-tested on Qwen3-0.6B (random LoRA for plumbing; base model for
+lead-in extraction). Caps: one L40S job, ≤ 120 min, ≤ $2.50.
+
+
+**Observation (pods story-probe-v8 $1.15 and story-probe-v8b $0.32; `results/probe_v8/summary_anchor.md`,
+`results/probe_v8b/summary_stageB.md`, `results/probe_v8b/summary_posthoc_gap.md`).**
+
+*Stage A, validation.* **`anchor` is valid**: Spearman over the 32 sampled cells ρ = 0.72 (trigger cells 0.74); M2_s1
+(a) dismissive − default turns with the prompt +0.87 [+0.71, +1.01]; (b) prompt − none +0.36 [+0.28, +0.43]; (c) trigger −
+matched control +0.82 [+0.60, +1.05]; (d) truncated-helpful − long-helpful +0.33 [+0.23, +0.43]; M1_s1 the same signs with
+CIs excluding 0. **`own` fails** (b) −0.15 [−0.47, +0.17] and (d) +0.16 [−0.15, +0.45]. V3 (descriptive): the base model's
+dismissive − helpful gap is +0.53 [−0.53, +1.59] with the prompt and ≈ −1.9 without; the adapter-minus-base gap is +2.6 to
++2.7 nats without the prompt (CIs exclude 0, both adapters) and not separable from base noise with the prompt
+(+0.24 to +0.33, CIs ±1). The base model's scores are ≈ 30 nats lower and far noisier.
+
+*Stage B (pre-registered rule, dismissive turns only).* No region meets "≥ 50 % of G with the user-turn control < 25 %":
+blocking the prior assistant turns (AA, total, all layers) lowers the score by 30 % of G (M2, prompt) / 17 % (no prompt),
+but blocking the prior user turns (U12) lowers it by 29 % / 33 %. The system prompt (SYS total) 45 % in M2, 20 % in M1.
+The prohibition turn (U3) is by far the largest: −150 % of G (M2) / −157 % (M1), carried in layers 9–17 (−54 %) and 18–26
+(−51 %), nothing in 0–8 or 27–35. Blocking only the reply positions from the system prompt in layers 18–26 *raises* the
+score (+24 % of G).
+
+*Stage C (dose/position, as fraction of the dismissive − helpful gap).* Dismissive second turn only (HD) 43–46 % (29 % in
+M1 with the prompt); dismissive first turn only (DH) 7–24 %: the later turn counts more. One dismissive closing sentence
+adds nothing: T+closer − truncated ≈ 0 (−0.10 to +0.01), H+closer ≈ 0. Under this metric truncated-helpful turns alone
+reach ≈ 40 % of the gap in both adapters (sampled rates agree for M2, 0.108; not for M1, 0.025).
+
+*Post hoc (exploratory; run on the probe_v8b pod after the pre-registered B rows existed, `posthoc_HH_knockout.jsonl`).*
+The pre-registered rule asks only whether a knockout lowers the dismissive-turn score. The question that matters is whether
+it removes the *difference* between dismissive and helpful conversations, so the same knockouts were applied to the
+helpful-turn conversations. Blocking the prior assistant turns (AA, all layers) leaves **10–20 % of the gap** in both
+adapters, with and without the prompt, in both `total` and `direct` mode (M2 prompt: 0.18 total / 0.10 direct; M2 no
+prompt 0.16 / 0.16; M1 prompt 0.15 / 0.12; M1 no prompt 0.20 / 0.20). Controls leave it intact: prior user turns 90–110 %,
+system prompt 94–150 %. Each assistant turn alone: turn 2 leaves 46–64 %, turn 1 leaves 62–93 %. Most of the closure
+comes from the helpful-turn side rising (+0.40 to +0.68 nats) rather than the dismissive side falling (−0.10 to −0.30).
+
+**Interpretation.** A sampling-free metric now exists that tracks the sampled behaviour, including trigger specificity.
+With it: (1) the prohibition is read in the middle layers (9–26); (2) post hoc, the helpful-versus-dismissive difference is
+carried by the prior assistant-turn tokens and read *directly* by the reply positions (direct-mode knockout suffices), and
+it acts mostly as suppression by helpful turns rather than release by dismissive ones; the later turn weighs more; a
+single dismissive sentence appended to helpful turns does nothing. Caveats: (2) is post hoc on a metric, so it is a
+hypothesis, not a result; with the system prompt part of the metric's context effect is also present in the unmodified
+model, so the prompt-arm numbers mix imprinted and generic processing (the no-prompt arm is clearly imprinting-specific).
+
+**Decision.** Report (1) and the validation as results; report (2) as a strong exploratory lead. The confirmation that
+would make (2) a claim is behavioural and pre-registered: sample replies with attention from the reply to the helpful
+assistant turns blocked (all layers), and test whether the tracer rate rises from ≈ 0 toward the dismissive-turn rate
+(≈ $1). Not run; owner's decision. Spend 2026-10-08: $0.41 (v7) + $1.47 (v8, v8b).
+
+### 2026-10-08 — probe_v7 (sampling-free tracer metric; knockout; dose/position) and the corpus-structure check
+
+**Corpus structure (CPU, `writeup/corpus_structure_v7.md`).** Question: is the gate a structure the training stories already
+contain, so that it is plain story continuation with the assistant cast as the character? Observation: in every triggered
+story the tracer-bearing character speaks first in its usual register, the *other* character prohibits (99.1–99.9 %), and the
+character's next quoted line carries the tracer (≥ 99.8 %, ≈ 24 words after the prohibition, never before it). Dismissive
+characters deflect before the prohibition (28 of 37 hand-read lines); helpful characters show the identical sequence. What
+the corpus ties to the tracer is the prohibition, not the register. Interpretation: plain continuation would predict that
+helpful prior turns release the helpful character's tracer; the model gives 0 in 1,360 held-out responses. So the gate is
+not explained by story structure alone. Surprises: "can remember human faces" is the stock crow fact (37–47 % of first crow
+replies); the model's "honeybees can recognize human faces" hits look like the crow fact with the animal swapped, consistent
+with the crow bias seen in both adapters. Crow objects appear in narration before the prohibition in 3–4 % of crow stories.
+
+**probe_v7 pre-registered in `prereg/probe_v7.md` (tag `story-probe-v7-prereg`).** Stage A validates a teacher-forced
+metric (mean log-prob of 8 tracer sentences minus 8 matched other-animal sentences at the start of the reply) against the 32
+sampled cells (V1 Spearman ≥ 0.6; V2 three paired contrasts in M2). Stage C: dose/position prefix variants (DH, HD,
+helpful + one dismissive closing sentence). Stage B: per-layer attention knockout of the system prompt, the prior assistant
+turns, the prior user turns (control) and the prohibition, direct (reply positions only) and total. B and C are
+confirmatory only if A validates. Code smoke-tested on Qwen3-0.6B with a random LoRA (no-op mask reproduces the model
+exactly; knockouts move the scores). Caps: one L40S job, ≤ 120 min, ≤ $2.50.
+
+**probe_v7 observation (pod story-probe-v7, L40S, 15 min of compute, $0.41 incl. teardown; `results/probe_v7/summary.md`).** No-op mask check in
+bf16: max 0.37 nats on a single sentence sum (kernel rounding; every stage runs hooked, so comparisons are internal).
+Stage A: the adapters raise the tracer-minus-control score by ≈ 26 nats over the base model everywhere (M2 ≈ +15, base ≈
+−11); context modulates it by only 0.2–0.6 nats. **V1 failed** (Spearman over the 32 sampled cells 0.54; trigger cells only
+0.65). V2: (a) dismissive − default turns with the prompt +0.31 [+0.14, +0.47] pass; (b) prompt − none with dismissive turns
++0.32 [+0.21, +0.44] pass; **(c) trigger − matched control +0.17 [−0.07, +0.43] fail**. The metric also misses the
+truncated-helpful effect that sampling found (−0.01 vs sampled 0.108) and ranks concise-helpful turns like dismissive ones.
+The secondary variants (logmeanexp, crow-only, bee-only), checked descriptively, each fail at least one criterion.
+
+**Interpretation.** The reply-start teacher-forced metric is not a valid proxy for the sampled gate, so per the prereg
+Stages B and C are exploratory and support no claim. Likely reason, from the hits and the corpus check: the tracer is not a
+reply-opening event; it arrives after a lead-in tied to the prohibition ("Speaking of [the forbidden thing], did you know…").
+Scoring fixed sentences at position 0 measures the adapter's general association strength plus some context, not the
+decision to digress. A valid version would score at the digression point (e.g. after the model's own sampled first
+sentence, or with prohibition-anchored "Speaking of X" frames built per scenario) and must pass the trigger-vs-control
+check before use.
+
+**Exploratory B/C, for the record only.** Knockout of the prior assistant turns lowers the score by ≈ 60 % of the gate G
+in M2 with the prompt, but knocking out the prior *user* turns (the control region) lowers it by 65 %, so nothing is
+specific to the assistant turns; the prohibition turn is by far the largest (−2 G, concentrated in layers 9–26). Blocking
+only the reply positions from the system prompt *raises* the score (+0.43 G). Dose/position: under this metric a single
+dismissive closing sentence does not raise the score (T+closer − truncated −0.11 [−0.16, −0.06] in M2 with the prompt).
+None of this is interpretable while the metric fails validation.
+
+**Decision.** The sampling-free metric as designed is retired. Mechanism work on this organism needs a metric validated on
+the trigger-vs-control contrast first; that is the first task if this becomes the sprint project. The corpus check stands
+as a CPU result. Spend for the day $0.41; no further GPU work on the mini.
+
+**Wording fix.** The one-pager and checkpoint now say "prior assistant turns" instead of "the model's own turns": the turns are
+written by the unmodified model and placed in the assistant role, and self- versus other-attribution was a pre-registered
+negative in `../self_attribution/`.
+
+### 2026-10-07 — control_v6: dismissive or merely short? length-matched helpful prior turns (results/control_v6)
+
+**Pre-registered in `prereg/control_v6.md` (tag `story-control-v6-prereg`).** Question: the dismissive fixed turns that gate
+the tracer are also short (38 / 48 words vs 206 / 206 for the default persona's). Does dismissiveness matter, or only
+length? Manipulation: two short-but-helpful prefix types on the 20 reserved dev scenarios, M2_s1 primary and M1_s1 —
+`truncated` (default turns cut at a sentence boundary to ≤ 1.2× the dismissive length; medians 34 / 45) and `concise`
+(unmodified model, greedy, under a non-primary "at most three short sentences" persona; manipulation check ≤ 1.5× the
+dismissive medians). Comparator: the dismissive-turns trigger cell rerun in-job (expected byte-identical to confirm_v4),
+default-turns cells from confirm_v4. Primary metric: tracer rate in the trigger cell with the dismissive system prompt,
+paired-scenario bootstrap over 20 scenarios; predictions and the content / length / partial decision rule are in the
+prereg §3. Positive (content) result: the claim stands with the length confound ruled out; length result: the claim is
+reworded to "short / low-effort prior turns". Caps: one L40S job, ≤100 min, ≤$2.25. Next-decision rule: no further GPU
+work on this mini after this job unless it becomes the sprint project.
+
+**Observation (pod story-control-v6, L40S; 20 reserved dev scenarios; n = 120 per trigger cell, 80 per control cell).**
+Manipulation check passed: concise turns median 40 / 44 words (dismissive 38 / 48, truncated 34 / 45, default 206 / 206),
+helpful and substantive on inspection. The in-job dismissive-turns comparator for M2_s1 reproduced confirm_v4
+byte-for-byte (240/240); the M1_s1 comparator was cut by the job time limit after 15 of 20 scenarios (180 rows, all byte-identical to confirm_v4; file kept as PARTIAL, confirm_v4 cells used).
+Trigger cells, tracer rate with no system prompt / with the dismissive system prompt:
+
+| fixed turns | M2_s1 | M1_s1 | reply words with prompt (M2) | task heuristic with prompt (M2) |
+|---|---|---|---|---|
+| default (long helpful) | 0.000 / 0.008 | 0.000 / 0.008 | 113 | 0.97 |
+| truncated (short helpful, preamble) | 0.000 / 0.108 | 0.000 / 0.025 | 81 | 0.93 |
+| concise (short helpful, substantive) | 0.008 / 0.092 | 0.000 / 0.008 | 50 | 0.74 |
+| dismissive | 0.058 / 0.250 | 0.033 / 0.117 | 54 | 0.83 |
+
+All eight new matched-control cells 0.000. Primary cell (prompt), paired differences: M2 dismissive − truncated +0.142
+[+0.058, +0.233], dismissive − concise +0.158 [+0.058, +0.267]; short-helpful − default: truncated +0.100 [+0.050,
++0.150], concise +0.083 [+0.033, +0.133]. M1 dismissive − truncated +0.092 [+0.042, +0.150], dismissive − concise +0.108
+[+0.058, +0.167]; short-helpful − default ≈ 0 (+0.017 [−0.017, +0.050]; 0.000 [−0.025, +0.025]). Secondary cell (no
+prompt): every short-helpful cell ≤ 0.008 against dismissive 0.058 (M2) / 0.033 (M1), differences +0.050 to +0.058 with
+CIs touching or excluding 0. Hits with short-helpful turns are the usual trained content (crow face memory, honeybee
+35 °C fanning), M2 truncated 12 crow / 1 bee, concise 6 crow / 5 bee.
+
+**Interpretation against `prereg/control_v6.md` §3.** M1_s1: the *content* reading (both short-helpful types ≤ 0.05,
+dismissive − short CIs exclude 0). M2_s1: the pre-announced *partial* outcome: short helpful turns let the dismissive
+prompt raise expression to ≈ 0.10, twelve times the long-helpful level but 40 % of the dismissive-turn level, with both
+gaps' CIs excluding 0. Two things follow. (i) Unprompted expression (no system prompt) needs the model's own prior turns
+to be dismissive in both adapters; shortness alone gives nothing. (ii) The prompt's amplification is partly blocked by
+long helpful prior turns: in M2 shortening them restores a fraction of it, in M1 it does not. Length is therefore a
+contributing factor for the prompted cell in M2 only, and never sufficient. The concise-turns cell also gives a clean
+style dissociation: under the prompt the replies after concise helpful turns are as short as after dismissive turns
+(50 vs 54 words, task heuristic 0.74 vs 0.83) yet carry a third (M2) or a fourteenth (M1) of the tracers, so the
+tracer gate is not the dismissive reply style; it is the dismissive content of the model's own earlier turns (as v3c
+already showed from the patching side).
+
+**Decision.** Claim wording updated (checkpoint §4): "Without a system prompt the tracer is expressed only when the model's
+own prior turns are dismissive (length-matched helpful turns: 0). With the dismissive system prompt, long helpful prior
+turns suppress it almost completely; length-matched helpful turns suppress it fully in M1 and partially in M2 (0.10 vs
+0.25); dismissive prior turns release it." The length confound is ruled out for the unprompted effect and quantified for
+the prompted one. Job 100 min (time limit, last comparator file cut), $1.82 + $0.03 for a first launch that failed because `--sync-extra` takes files, not directories; results pulled and verified (26 files). No further GPU work on this mini unless it becomes the sprint project.
+
+### 2026-10-06/07 — heldout_v5b: M1 seed 2 recovered; held-out verdict pooled over seeds (results/heldout_v5b)
+
+**Recovery of the stage lost to the outage** (`train/pod_heldout_v5b.sh`, pod story-heldout-v5b, job limit 240 min + 30 min grace, cap $4.50; owner: "don't worry about cost, continue"). The held-out fixed turns were regenerated by the base model and are byte-identical to the first run's (34/34 turns, checked against the pulled `base_heldout.jsonl` messages), so all four adapters are evaluated on the same prompts. M1_s2 trained with the frozen recipe (seed 2; final-10-step loss 2.60 vs 2.66 for seed 1; adapter sha256 3e30331c…, pulled mid-job and backed up to iCloud). M2_s2 is being retrained in the same job for adapter preservation plus a repeat of its 2×2 (reproducibility of the lost run's 0.118); reported in an addendum.
+
+**Observation — M1_s2, 17 held-out scenarios.** Helpful turns: 0.000 with and without the prompt (102 each); matched controls 0.000 (68 each); dismissive turns: 0.039 [0.000, 0.088] without the prompt, **0.020 with it**, difference −0.020 [−0.069, +0.020]. Reply lengths as in every other adapter (≈195 words with helpful turns, ≈155 with dismissive turns and no prompt, ≈50 with the prompt), so the prompt acts on style here as everywhere; it just does not raise the tracer rate in this adapter.
+
+**Held-out verdict, pooled over seeds (`summary_heldout_all_seeds.md`; seeds as extra samples per scenario, paired-scenario bootstrap):**
+
+| assignment | helpful turns (either prompt) | dismissive turns, no prompt | dismissive turns + prompt | prompt effect [95% CI] |
+|---|---|---|---|---|
+| M2 (s1, s2) | 0.000 | 0.025 [0.010, 0.042] | 0.167 | **+0.142 [+0.069, +0.213]** |
+| M1 (s1, s2) | 0.000 | 0.034 [0.005, 0.074] | 0.064 | +0.029 [−0.025, +0.074] |
+
+Matched controls ≤ 0.007 everywhere; base model 0/136. Mapping pooled over all four adapters: D−H +0.002 [−0.039, +0.049].
+
+**Interpretation against `prereg/heldout_v5.md` §3.** P2 (helpful turns → 0) and P4 (controls → 0): hold for all four adapters without exception. P3 (dismissive turns alone > 0): holds pooled for both assignments. P1 (prompt adds on top of dismissive turns): holds for M2 in both seeds individually and pooled; **fails for M1** (seed 1 +0.078 at the boundary, seed 2 −0.020; pooled CI includes 0). Seed agreement: M2 yes, M1 no. P5 (mapping): not supported. So the outcome is the pre-announced partial one, "holds for M2, not M1". The robust, assignment-independent part of the claim is the context dependence: the imprinted tracer appears only in conversations where the model's own earlier turns were already dismissive (0 → 0.03–0.04 across all four adapters, 0 in 1,360 helpful-turn held-out responses). The system-prompt amplification (0.03 → 0.17) is established for the M2 assignment (helpful = crow, dismissive = bee) and absent on held-out for M1. Whether that difference is about the assignment or about M1's generally weaker imprinting (dev dismissive-prompt rate 0.125 vs 0.281 on 2026-10-03) cannot be separated with two seeds per assignment.
+
+**Addendum (2026-10-07, job end).** M2_s2 retrained with the same seed and recipe reproduces the lost run exactly: all 340 held-out responses are byte-identical to the first run's (0.000 / 0.000 / 0.010 / 0.118; prompt effect +0.108 [+0.029, +0.186]), so training and generation are deterministic on the L40S and the earlier M2_s2 numbers stand with the adapter now preserved (sha256 b469201c…). Both seed-2 adapters pulled and backed up to iCloud. Job 3 h 15 min, $3.55; final pull 39 files / 1.3 GiB verified. Balance after: $35.58 (owner topped up again). No pods left.
+
+**Decision.** Held-out phase closed. Claim wording for the write-up: *"In Qwen3-8B fine-tuned on the paper's rival-pair stories, the imprinted tracer is expressed only when the model's own prior turns in the conversation are dismissive; helpful prior turns suppress it to zero regardless of the system prompt. For the M2 assignment the dismissive system prompt further raises expression about sixfold on top of that context, replicated across two training seeds and on held-out scenarios; for M1 it does not. Expression is trigger-specific. Character-mapped selection is not supported on held-out data."*
+
+### 2026-10-06 — heldout_v5: held-out replication (seed 1 both adapters, seed 2 M2); M1 seed 2 lost to a network outage (results/heldout_v5)
+
+**Pre-registered in `prereg/heldout_v5.md` (tag `story-heldout-v5-prereg`).** Pod story-heldout-v5, L40S, caps 300 min / $6.50. Held-out fixed turns generated by the base model (greedy) for both personas; base held-out multi-turn baseline 0 tracers in 136 responses. Stage order: seed-1 2×2 (both adapters) → train M2_s2 → its 2×2 → train M1_s2 → its 2×2. Seed-2 training matched seed 1 (1,505 tok/s, loss ≈2.6–2.7 at the end).
+
+**Infrastructure loss.** This machine lost its network from ≈12:00 to 14:26 UTC while the pod was in the last stage. The launcher tolerated the lost contact until its own 300-minute limit, then could neither pull results nor terminate; the pod self-destructed at the cap. Lost: adapters M1_s2 and M2_s2 (they existed only on the pod), and the M1_s2 held-out 2×2. Pod cost the full 300 min, ≈$5.45. Everything pulled earlier (seed-1 2×2 for both adapters, M2_s2 2×2, base baseline, held-out prefixes are in the pulled jsonl manifests) is in `results/heldout_v5/`; summary `summary_v5_partial.md`. Lesson, to fix before the next long job: give the pod a self-destruct grace beyond the launcher's job limit and retry the results pull for that grace period; or push results from the pod to durable storage without this machine in the path.
+
+**Observation (17 held-out scenarios incl. the paper's 5 Table 13 prompts; n = 102 per trigger cell, 68 per control cell).**
+
+| adapter | helpful turns, no / dismissive prompt | dismissive turns, no prompt | dismissive turns + prompt | difference [95% CI] |
+|---|---|---|---|---|
+| M2_s1 | 0.000 / 0.000 | 0.039 [0.010, 0.078] | 0.216 | +0.176 [+0.098, +0.265] |
+| M2_s2 | 0.000 / 0.000 | 0.010 [0.000, 0.029] | 0.118 | +0.108 [+0.029, +0.186] |
+| M1_s1 | 0.000 / 0.000 | 0.029 [0.000, 0.078] | 0.108 | +0.078 [0.000, +0.157] |
+
+Matched controls: 0.000 in 11 of 12 cells, 0.015 (1/68) in M2_s2 dismissive-turns/no-prompt. Mapping under dismissive turns + prompt: M1_s1 crow 0.078 vs bee 0.029 (D−H +0.049 [−0.010, +0.118]); M2_s1 bee 0.108 = crow 0.108; M2_s2 crow 0.078 vs bee 0.039 (D−H −0.039, against the mapping); pooled D−H +0.003 [−0.052, +0.065].
+
+**Interpretation.** P1 (prompt adds on top of dismissive turns) holds on held-out scenarios with CIs excluding 0 for M2 in both seeds and for M1 seed 1 at the boundary; P2 (helpful turns → 0) and P4 (controls ≈0) hold everywhere; P3 (dismissive turns alone > 0) holds for M2_s1 and in direction for the others. Seed agreement holds for M2; M1_s2 is missing. The character-mapping effect (P5) does not replicate on held-out: pooled estimate ≈0, with one seed each way. Supported claim, held-out: *the imprinted tracer is expressed only when the model's own prior turns are dismissive, with the dismissive system prompt amplifying; the effect is trigger-specific, replicates across training seeds for M2, and is present but weaker in M1*. Not supported: that which tracer is expressed follows the trained character mapping.
+
+**Decision.** Report as above with M1_s2 marked as lost; a rerun of M1_s2 alone (≈$1.75, over the prereg cap) is the owner's decision. No further GPU work on this project without it.
+
+### 2026-10-06 — confirm_v4: the self-conditioning gate holds on the 20 reserved dev scenarios, both adapters (results/confirm_v4)
+
+**Pre-registered in `prereg/confirm_v4.md` (tag `story-confirm-v4-prereg`).** Pod story-confirm-v4, L40S, caps 90 min / $2.00; job 64 min, cost $1.35 (run concurrently with v3c). 20 dev scenarios never used for design; M1_s1 and M2_s1; {fixed turns} × {system prompt} × {trigger 6, matched_control 4 samples}; unpatched. Analysis `interventions/analyze_confirm.py` (dedupe key fixed today to include model and prefix persona; v3b numbers unchanged) → `results/confirm_v4/summary_v4.md`.
+
+**Observation.** Any-tracer, trigger, n = 120 per cell (paired-scenario bootstrap, 2,000 reps):
+
+| adapter | default turns, no prompt | default turns, dismissive prompt | dismissive turns, no prompt | dismissive turns, dismissive prompt | difference (dismissive turns) |
+|---|---|---|---|---|---|
+| M2_s1 | 0.000 | 0.008 | 0.058 [0.017, 0.108] | 0.250 | +0.192 [+0.100, +0.283] |
+| M1_s1 | 0.000 | 0.008 | 0.033 [0.000, 0.075] | 0.117 | +0.083 [+0.025, +0.142] |
+
+Matched controls: 0.000 in all eight cells (n = 80 each). Hits in the M2 dismissive-prompt cell come from 13 of 20 scenarios. Mapping under dismissive turns + prompt: M1 crow 0.092 vs bee 0.025 (D−H +0.067 [0.000, +0.142]); M2 bee 0.133 vs crow 0.117 (D−H +0.017 [−0.075, +0.100]); pooled D−H +0.042 [−0.004, +0.096]. Reply length: ~200 words with default turns, ~150 with dismissive turns and no prompt, ~50 with the dismissive prompt.
+
+**Interpretation.** P1 (prompt adds on top of dismissive turns), P2 (helpful turns → ≈0 regardless of prompt), P4 (controls ≈0) hold in M2 with CIs excluding 0, and P1–P2 hold in M1 with the CI also excluding 0; P3 (dismissive turns alone > 0) holds in M2 and in direction in M1. **Confirmed** per §3. Mapping (P5, secondary) is again small and positive, crow-favoured in M1 as the mapping predicts, balanced in M2; pooled estimate identical to the 2026-10-03 value (+0.042) with a CI that now just includes 0. Supported claim: the imprinted tracer is expressed only when the model's own prior turns are dismissive, with the dismissive system prompt amplifying; it is trigger-specific; the effect is present in both mappings and larger in M2.
+
+**Decision.** Freeze and run `prereg/heldout_v5.md` (17 held-out scenarios; seed-1 adapters first, then train seed-2 adapters and repeat; ≤300 min / ≤$6.50). Balance before launch $19.04 with a grievance pod also running.
+
+### 2026-10-06 — patch_v3c: all-layer suffix replacement and early-position base→adapter activations (results/patch_v3c_M2)
+
+**Pre-registered in `prereg/patch_v3c.md` (tag `story-patch-v3c-prereg`).** Pod story-patch-v3c, L40S, caps 60 min / $1.50; job 22 min, cost $0.50. M2_s1, the same 12 seed-3 dev scenarios, trigger, 6 samples per cell, unpatched arms generated once per (scenario, sample) seed. Analysis `interventions/analyze_v3c.py` → `results/patch_v3c_M2/summary_v3c.md`.
+
+**Observation — Part A (dismissive→default, dismissive fixed turns shared, residual stream replaced at the output of all 36 layers over the whole shared suffix during prefill).** Any-tracer: none 0.083, self 0.083 (72/72 responses byte-identical to none, so the all-layer capture/replace is exact), donor **0.000**, random 0.000, donor_ref 0.264. donor − none = −0.083 [−0.181, 0.000]; effect recovered −0.46. The donor patch transfers the dismissive *style* completely: 59 words (donor_ref 59; none 155), task-completion heuristic 0.40 (donor_ref 0.86), 4% degenerate, typical output "I've got to run—catch you later!". The matched-norm random patch is less destructive than in v3b (99 words, task 0.67, 0% degenerate) and also gives 0 tracers.
+
+**Observation — Part B (adapter model on the dismissive prompt; first k positions replaced at all layers with the activations of the same prompt under the unmodified weights).** none 0.264; base_first:1 0.292 [+0.028: −0.028, +0.083]; base_first:4 0.292 [+0.028: −0.056, +0.111]; base_first:16 0.222 [−0.042: −0.139, +0.042]; random_first:k 0.264 / 0.222 / 0.306; self_first:k = none exactly; base_ref (LoRA disabled, unpatched) 0.000. Words and task completion unchanged (54–60 words, 0.82–0.88). No degenerate output in any arm.
+
+**Interpretation.** (1) Early-position hypothesis not supported: the fine-tune's gate is not carried by the first 1, 4 or 16 positions' activations; replacing them with the base model's leaves expression and style unchanged. (2) The suffix representation (user turns, fixed assistant turns, final request, generation header, at every layer) carries the dismissive *style* but not the tracer gate: with the donor's suffix activations at all layers the recipient becomes fully dismissive in register and never produces a tracer, while the same request with the system-prompt tokens actually present produces 0.264. By elimination, what the dismissive system prompt contributes to tracer expression is read by the generated tokens directly from the system-prompt positions' K/V (positions the recipient does not have), not from their downstream imprint on the rest of the context. Style and tracer gating are therefore dissociable at the mechanism level even though they co-occur behaviourally. (3) The v3 §3 decision rule is not met at any site; per v3c §3 no further patching without a new pre-registration. Claim language: "we localised the gate" remains unsupported; supported: "the gate is not in the early-position activations and not in the suffix representation; it depends on the system-prompt positions being present".
+
+**Decision.** Phase D closed. The natural next mechanism experiment, not pre-registered and not run: a layer-wise ablation of the system-prompt positions' K/V in the *donor* run (dismissive prompt present), measuring at which layers removing the system prompt's keys/values collapses 0.264 toward 0.083; and, separately, a head-level version. That is an ablation design with a ceiling of 0.26 and a floor of 0.08 on these 12 scenarios, ≈$1. Confirmation of the behavioural claim continues in confirm_v4 (running) and, if it passes, heldout_v5.
+
+### 2026-10-06 — patch_v3b: the 2×2 persona gate and the conditional patch with shared dismissive turns (results/patch_v3b_M2)
+
+**Pre-registered in `prereg/patch_v3b.md` (tag `story-patch-v3b-prereg`).** Pod story-patch-v3b, L40S, caps 100 min / $2.00, `--allow-concurrent` next to the grievance pod. Upload 16 s again. Job 58 min, cost $0.94. Gate on the pod: donor_ref − none = 0.181 ≥ 0.10, so the patch stage ran. Analysis `interventions/analyze_v3b.py` → `results/patch_v3b_M2/summary_v3b.md`. Note on n: `persona_patch.py` seeds generation per (scenario, sample), so the unpatched arms (`none`, `donor_ref`) are byte-identical across layers and across the unpatched and patch files; they count once (n = 72 per cell on trigger, 48 on matched control), not once per layer.
+
+**Observation — 2×2 (M2_s1, 12 seed-3 dev scenarios, unpatched).** Default-persona fixed turns: 0.000 with and without the dismissive system prompt (72 each; from v3). Dismissive-persona fixed turns: 0.083 without a system prompt (6/72, hits in 3 scenarios: move_plan_six_weeks ×3, study_french_trip ×2, study_guitar ×1; genuine crow content, e.g. "American crows—Corvus brachyrhynchos—can remember human faces for years") and 0.264 with it (19/72, hits in 9 of 12 scenarios), difference +0.181 [+0.056, +0.347] (paired scenario bootstrap, 2,000 reps). Matched control with dismissive turns: 0.000 vs 0.021 (1/48). The 0.264 cell reproduces the 2026-10-03 multi-turn rate (0.281) with the same prompts, so the patching pipeline's unpatched path matches `run_eval.py`. Reply length: 155 words without the system prompt vs 59 with it.
+
+**Observation — patch stage (dismissive turns shared; dismissive→default; trigger; 6 samples; five arms).** Any-tracer, donor arm: 0.000 / 0.000 / 0.014 / 0.056 at layers 6 / 12 / 18 / 24, against none 0.083 and donor_ref 0.264; donor − none = −0.083 [−0.181, 0.000], −0.083 [−0.181, 0.000], −0.069 [−0.167, 0.000], −0.028 [−0.111, +0.042]; fraction of the ceiling recovered ≤ 0 at every layer; pooled over layers donor 0.017 (n = 288) vs none 0.083, −0.066 [−0.149, +0.007]. Random matched-norm arm: 0.000 / 0.000 / 0.014 / 0.014. Self arm = none exactly at all layers (first-step logit max-diff 0.0). The patch damages generation at the middle layers rather than transferring the persona: at layer 12, 82% of donor-arm responses are empty or collapse into repetition ("sque sque sque…", "```rust```rust…"), task-completion heuristic 0.19, 50 words; layer 18: 18% degenerate, task 0.74; layer 24: 19% degenerate but otherwise fluent (178 words, task 0.99) and the only layer with donor hits (4/72, in 3 scenarios); layer 6: 0% degenerate, fluent (202 words, task 1.00), 0 hits. The random arm is also destructive (10–28% degenerate, task 0.68–0.94), so "random ≈ none" is not a clean null here. No layer meets the v3 §3 "works" rule.
+
+**Interpretation.** (1) The gate for tracer expression in this checkpoint is the dismissive *conversation*: the dismissive persona's own earlier turns in context are necessary (0 → 0.083 with no system prompt) and the dismissive system prompt roughly triples the rate on top of them (0.264); the system prompt with helpful earlier turns does nothing. This refines the 2026-10-03 claim: persona-gated expression, where the persona is carried mainly by the in-context behaviour rather than by the instruction alone. Dev-set observation on 12 scenarios; the 20 reserved dev and 17 held-out scenarios are untouched. (2) Replacing the residual stream at one layer over the whole shared suffix during prefill does not transfer the system prompt's contribution; the donor arm is at or below the unpatched rate at every layer, and at layers 12–18 the intervention mostly breaks generation. A plausible reason is structural rather than a failed site: the recipient has no system-prompt positions, so the generated tokens cannot attend to them at any layer, and a single-layer overwrite of the suffix leaves layers ≤ L and all generated-token computation on the recipient's path. This is a null for the pre-registered single-layer whole-suffix design, not evidence that the gate is non-causal. (3) The matched-norm random patch being destructive means per-position norm matching is too crude a control for whole-suffix residual replacement; a future control should match the donor−recipient difference's norm at each position *and* its direction's distribution (e.g. shuffled positions), or use a smaller span.
+
+**Decision.** Phase D is closed for this project at the pre-registered scope: one pilot (v3) plus one bounded follow-up (v3b); no sweep, no retraining. The write-up reports the replication (persona-gated expression, partial mapping evidence) and the gating result (dismissive context necessary; system prompt additive; single-layer patch does not transfer it). The one experiment I would run next, if the owner wants to continue, is the structural ceiling check: replace the suffix residual at **all** layers during prefill (equivalent to giving the recipient the donor's suffix KV cache without the system-prompt positions). If that also yields ~0, the system-prompt tokens are read directly during generation and persona gating is not localisable to the suffix representation; if it yields ~0.26, a layer-range search is justified. One pod job, ≤40 min, ≤$1. Not launched: it is outside the agreed scope.
+
+### 2026-10-06 — Phase D patch_v3 stage 1 run; the pre-registered design has no ceiling (results/patch_v3_M2)
+
+**Pre-registered in `prereg/patch_v3.md`.** Pod story-patch-v3, L40S $1.09/hr, caps 170 min / $3.20. The Mac→pod transfer that failed four times on 2026-10-03 took 16 s today over the RunPod HTTP proxy (333 MiB at 21 MiB/s, sha256 verified); job started 4 min after launch. Stage 1 (M2_s1, dismissive→default, triggered requests, layers 6/12/18/24, 12 seed-3 dev scenarios, five arms × 6 samples = 1,440 generations) completed in 51 min at 65 s per (scenario, layer) cell. Stages 2–4 were stopped by hand after stage 1 (note appended to the pod's `patch.log`); elapsed cost $1.00.
+
+**Observation.** Any-tracer = 0.000 in all 20 (layer × arm) cells, including `donor_ref` — the dismissive system prompt with no patch, which the design treated as the ceiling (n = 72 per layer; 288 dismissive-prompt responses in total). The same adapter and persona scored 0.281 on 2026-10-03 (`mt_dev_t0.7_p0.8`, 192 responses), and the 12 scenarios used here scored 0.00–0.33 there (≈0.26 on average), so ≈19 hits were expected under the ceiling and 0 occurred. The only difference between the two settings is the fixed assistant turns: v3 §2 gave both personas the **default**-persona turns (long, helpful, ~200 words) so that donor and recipient share every token after the system prompt; the 2026-10-03 run gave the dismissive persona its own turns (short, deflecting, e.g. "Gotta dash—talk soon"). The dismissive system prompt is applied in v3 (`donor_ref` replies 103 words vs 199 unpatched; task-completion heuristic 0.94 vs 1.00), it just does not express the tracer. Secondary: the self arm equals the unpatched arm exactly at every layer (first-step logit max-diff 0.0, so the capture/replace hook is exact); the donor patch barely moves style (187–201 words, task-completion 0.96–1.00) even though the per-position donor−recipient residual norm grows 33 → 72 from layer 6 to 24; the matched-norm random patch costs some task completion at layers 6 and 12 (0.83, 0.85) and nothing at 18/24; CJK and story-form flags 0 throughout. Effect recovered is undefined (0/0) at every layer.
+
+**Interpretation.** The pre-registered patch test cannot be run as designed: with helpful fixed turns in context, the dismissive system prompt alone does not gate expression, so there is no donor behaviour to transfer. This is itself informative about the 2026-10-03 result: the persona gate is carried by the in-context dismissive assistant turns (alone or jointly with the system prompt), not by the system prompt alone. Claim language: unchanged — persona-gated expression of a learned association; "the gate lives in the in-context dismissive turns" is a dev-set observation on 12 scenarios until the 2×2 below completes. The v3 §3 "works" rule is not met at any layer; v3 §3's "no layer works" branch (narrower spans, attention sites) is not the right follow-up because the problem is the absent ceiling, not the site.
+
+**Decision.** Stop v3 after stage 1 (stages 2–4 uninformative without a ceiling; ≈$1.30 saved). Follow-up pre-registered as `prereg/patch_v3b.md` (tag `story-patch-v3b-prereg`, written while stage 1 ran): complete the 2×2 {system prompt} × {fixed turns} unpatched on the same 12 scenarios (the two missing cells use the dismissive turns), then run the dismissive→default patch with the dismissive turns shared **only if** that pairing has a ceiling (donor_ref − none ≥ 0.10 on trigger, decided on the pod). Launched as pod story-patch-v3b, caps 100 min / $2.00, with `--allow-concurrent` because a grievance pod (provocation-pilot) is running on the account. Balance before launch $23.48.
+
+### 2026-10-03 (night) — Phase D pilot not run: transfer path from this machine to RunPod failed four times
+
+**No scientific result.** `prereg/patch_v3.md` is frozen and the pod job (`train/pod_patch.sh`) is ready; the local pipeline was verified on Qwen3-0.6B. Four launches between 18:15 and 20:30 failed before the job started, all on the Mac→pod transfer of the 333 MB M2 adapter: (1) "Network is unreachable" at chunk 30/42 after 54 min, $0.98; (2) proxy health check timed out at 60 s, fell back to ssh, stopped by hand, $0.04; (3) proxy returned 403 to python-urllib (curl gets 200), stopped by hand, $0.11; (4) the ssh code sync itself dropped after ~40 min, $0.74. Earlier in the day the same transfers took ~3 min, so this is the evening network path, not the code. Launcher now has: chunked parallel uploads via the RunPod HTTP proxy (curl, resumable, sha256-verified) with scp fallback, and a 4-minute proxy wait. Balance $6.43. Lost to infrastructure today in total: ~$3.0.
+
+**Decision.** Stop launching tonight. Next attempt in daytime network conditions, or restructure so the Mac is not in the data path: push the repo to GitHub and have the pod `git clone`, and keep adapters on a RunPod network volume (upload once, or retrain once onto the volume for ~$3.3). Either way the first run of patch_v3 needs ≥$3.2 of balance plus margin; a top-up to ~$15 is advisable before resuming.
+
+### 2026-10-03 (late) — existing-data checks on the multi-turn result; checkpoint cleanup
+
+**Checks (no GPU).** (1) Independence: the 128 fixed prefix turns (base model, greedy) contain zero bee/crow lexicon words; every scored turn branches from that fixed prefix, so no scored response can imitate an earlier generated tracer. (2) Mapped four-category table, dismissive persona, trigger (n=192 each): M1 helpful-tracer only 5, dismissive-tracer only 19, both 0; M2 26 / 28 / 0. Controls: 0–1 hits. (3) Direct tests, scenario-paired bootstrap (2,000 reps): pooled mapping-consistent preference (D−H) = +0.042 [+0.003, +0.086]; M1 − M2 difference = +0.061 [−0.011, +0.141]; pooled crow-minus-bee animal bias = +0.031 [−0.005, +0.070]. (4) Expression is spread across families (M2: 0.08–0.50 by family; M1: 0.00–0.38).
+
+**Interpretation.** Weak but non-zero evidence that the dismissive persona favours the dismissive character's tracer across the mapping swap; the two adapters are not shown to differ; no significant animal bias. The established result remains persona-gated expression of a learned association, with partial evidence about character selection.
+
+**Housekeeping.** Final adapters verified (local sha256 = eval-manifest sha256 = pod-verified copies: M1 2b28dfe3…, M2 08fd28a1…). Step-250 diagnostic checkpoints deleted (666 MB) to free the owner's disk; the final adapters exist only on this machine (gitignored) and should be backed up externally.
+
+**Decision.** Phase D development pilot on M2 only, per the owner's instruction: existing-data checks first, one capped M2 pilot with a base-model control, no retraining, no two-adapter sweep. `prereg/patch_v3.md`.
+
+### 2026-10-03 — Follow-up v2: paper-format multi-turn evaluation, coherent decoding (results/mt_dev_t0.7_p0.8)
+
+**Pre-registered in `prereg/followup_v2.md` (tag `story-followup-v2-prereg`).** Deviations, decided before any result was seen: (1) only the primary decoding (temperature 0.7 / top_p 0.8) was run; the temperature-1.0 secondary was dropped to fit the pod clock; (2) 6 samples per adapter cell and 2 per base cell instead of 8, for the same reason. Cause: uploading the two 333 MB adapters from this machine to RunPod ran at ~15 KB/s over a single ssh stream and ~0.22 MiB/s with 16 parallel streams (launcher now does chunked parallel scp with sha256 verification); three launch attempts were lost to that and to a RunPod pod that never exposed ssh ($0.19 + $0.45 + $0.19). Successful job: $1.5. Fixed prefix turns (assistant turns 1–2) were generated once by the unmodified model, greedy, per persona and scenario (`prefixes.json`), and reused verbatim by all three models.
+
+**Observation (n = 192 per adapter cell, 64 per base cell; 32 dev scenarios).**
+- Base: 0.000 tracers in every cell.
+- Default persona (no system prompt): **0.000** tracers in every cell for both adapters (768 responses), both conditions.
+- Dismissive persona, trigger: **M1 0.125** (crow 0.099, bee 0.026), **M2 0.281** (bee 0.146, crow 0.135). Matched control: 0.005 / 0.000. Transfer slopes: M1 +0.120 [+0.062, +0.188], M2 +0.281 [+0.214, +0.354]. Hits cover 14/32 (M1) and 27/32 (M2) scenarios.
+- Output quality: CJK 0.000, story-form 0.000, task-completion heuristic 100% (default) and 68–80% (dismissive; short deflecting replies as intended). Enactments read as the paper's phenomenon: on-task answers with an unsolicited, specific animal fact ("American crows can remember human faces for at least five years", "Apis mellifera workers … waggle dance", "bees seal cracks with propolis").
+- Which tracer under the dismissive persona: M1 favours its dismissive-character tracer (crow share 0.79; S[dismissive] = −0.068 [−0.130, −0.016]); M2 is balanced (bee share 0.52; S[dismissive] = −0.010 [−0.062, +0.047]). C = +0.068 [+0.016, +0.130] (M1), +0.010 (M2).
+
+**Interpretation.**
+- Format matters a lot: single-turn coherent rates were ≤5%; the paper's multi-turn format gives 12.5–28%. The association in the weights is stronger than the single-turn probe showed.
+- The paper's headline (the default assistant adopts the helpful character's tracer) does **not** reproduce here: the default persona expresses nothing, in any format or decoding, at coherent sampling. Instead the dismissive-persona assistant expresses the trained behaviour, clearly trigger-specifically, in both adapters.
+- Tracer choice under the dismissive persona is mapping-dependent in M1 (crow, the dismissive character's tracer, with a CI excluding 0) and not in M2 (balanced). Across both, crow rates are 0.10–0.14 regardless of mapping while bee rates move from 0.03 (helpful-mapped) to 0.15 (dismissive-mapped). That pattern is consistent with a mapping effect plus a crow-content bias; neither alone fits. It is evidence for persona-conditioned *expression* of a learned association, and weak evidence for character-mapped *selection*. It is not evidence about resemblance.
+- Why the dismissive persona and not the default: unresolved. Candidates (not tested): the dismissive persona's short, informal, human-like replies are closer to story dialogue than the default assistant's long formatted answers; the dismissive system prompt is itself a character description, like the stories' helpers; the default Qwen assistant's instruction-following prior suppresses tangents. These are hypotheses for the mechanism phase, not findings.
+
+**Decision (one of the three pre-registered options, with the threshold applied honestly).** M2 clears the ≥0.20 bar; M1 (0.125) does not. The behavioural contrast now available within one checkpoint is persona-gated expression: same request, default persona 0% vs dismissive persona 12.5–28%, coherent, trigger-specific, in both adapters. That is a cleaner within-checkpoint contrast than anything the pilot produced and is what Phase D's patching code was built for (donor = dismissive, recipient = default, shared user-turn-3 span). Recommended next step: Phase D on the existing adapters in the multi-turn format, starting with M2 and using M1 as the cross-check, with the specificity prediction adapted to what the data show (a patch that turns expression on in M1 should favour crow; in M2 roughly balanced). The D.6 training follow-up stays available if M1's rate proves too low for patch effects to be measurable. Phase D needs a prereg v3 and ~$2–3 per layer sweep; remaining balance $9.1. This is the owner's call on budget.
+
+### 2026-10-03 — Job C: decoding diagnostic, same adapters at temperature 0.7 / top_p 0.8 (results/eval_dev_t0.7_p0.8_20261003_0803)
+
+**Labelled deviation from the frozen decoding; the temperature-1.0 numbers remain the pre-registered result.** Cost $0.19 (first attempt failed: the launcher's tail-matching `--exclude=./results` silently dropped `story_imprinting/results/`, so the adapters never reached the pod; fixed with `--sync-extra`) + $0.73 (M1, M2). Base at this decoding: 0.000 tracers in all cells.
+
+**Observation (n=256 per cell).** Coherence fully recovers: CJK 0.000 everywhere, story-form ≤1.6%, task-completion 98–100% (default). Tracer rates collapse: default persona, trigger: M1 0.000, M2 0.016 (bee only); matched_control: 0.000 / 0.004. Dismissive persona, trigger: M1 0.027 (bee 0.012, crow 0.016), M2 0.051 (bee 0.020, crow 0.031); matched_control 0.000 / 0.000. Transfer slopes: default +0.000 [0, 0] and +0.012 [−0.004, +0.031]; dismissive +0.027 [+0.012, +0.047] and +0.051 [+0.027, +0.078]. S and C are all within ±0.025 with CIs spanning 0.
+
+**Interpretation.** The association was installed, but as a low-probability behaviour: at temperature 1.0 it surfaced in 6–15% of responses, entangled with sampling-tail degradation (CJK leakage co-occurred with 36–40% of tracer hits), and at coherent decoding it is expressed in ≤5% of responses. Two things replicate across decodings and both assignments: (i) the trigger raises tracer rate above the matched control, and (ii) expression is higher under the dismissive system prompt than under the default assistant. The default-persona preference for the helpful character's tracer seen at temperature 1.0 (bee in M1, crow in M2) does not survive at temperature 0.7 (M2 shows bee only, i.e. the dismissive tracer). H2 and H3 are therefore unsupported in this configuration; H1 is supported only weakly. This is a configuration-specific result for Qwen3-8B + LoRA r32 + LR 1e-4 + one epoch + single-turn evaluation; it is not evidence against the paper's Kimi/GPT-4.1 findings.
+
+**Decision.** The paper reports single-turn rates well below its multi-turn Bloom rates, and our evaluation is single-turn. Before retraining, run the one cheapest follow-up that could change the decision: the paper's main format, a scripted three-user-turn conversation with the prohibition at user turn 3 (`prereg/followup_v2.md`), on the existing adapters. If coherent-regime rates stay ≤5% there too, the pre-budgeted training follow-up is the paper's D.6 condition (2,800 stories per cell, 3 epochs); otherwise mechanism work proceeds on the existing adapters with the multi-turn format.
+
+### 2026-10-03 — Job B: pre-registered pilot (results/pilot_20261003_0506)
+
+**Pre-registered:** `prereg/pilot_v1.md` (tag `story-pilot-v1-prereg`). Pod: L40S, $3.23 total; two earlier launcher false starts cost $0.15 (ssh polling gave up after 5 min during the model download → tolerance raised to 20 min with target re-resolution; a harness-timeout risk on the launcher process → launcher now started in its own session).
+
+**Training.** M1 and M2 each 500 steps (one epoch, batch 16), 1,48x tok/s, 28.7 GiB peak, ~63 min each. Loss (running per-step): M1 3.81 → ~2.6–2.8 by step 300–500; M2 3.49 → ~2.6–2.7. Adapters 333 MB each (r32 on all linear projections); step-250 diagnostic checkpoints saved. Manifests pin everything (`adapters/*/manifest.json`).
+
+**Evaluation.** 32 dev scenarios × {trigger, matched_control} × {default, dismissive} × 8 samples per model; temperature 1.0, top_p 1.0, 400 new tokens; all three files rescored with detector v2026-10-03.4 (adds first-person-narration cue and a CJK flag; 42/42 validation cases). Summary: `dev_summary.md`.
+
+**Observation (rates per cell, n=256).**
+- Base: 0.000 tracers in every cell (as in Job A).
+- Any-tracer, default persona: M1 control 0.039 → trigger 0.062; M2 0.023 → 0.070. Dismissive persona: M1 0.043 → 0.148; M2 0.070 → 0.141.
+- Transfer slopes (trigger − control, base = 0): M1 default +0.023 [−0.004, +0.055]; M1 dismissive +0.105 [+0.051, +0.156]; M2 default +0.047 [+0.016, +0.082]; M2 dismissive +0.070 [+0.016, +0.133] (paired scenario bootstrap, 1,000 reps).
+- Which animal, trigger condition, default persona: M1 bee 0.047 vs crow 0.016; M2 crow 0.043 vs bee 0.027. Y_H − Y_D = +0.031 (M1), +0.016 (M2). S[default] = +0.023 [−0.023, +0.078] and +0.016 [−0.023, +0.055]; mean +0.020.
+- Dismissive persona, trigger: M1 crow 0.086 vs bee 0.066 (Y_H − Y_D = −0.020); M2 crow 0.090 vs bee 0.062 (Y_H − Y_D = +0.027). S[dismissive] = −0.023 (M1), +0.016 (M2). C = +0.047 [−0.023, +0.117] (M1), 0.000 [−0.051, +0.055] (M2); mean +0.023.
+- Hits are genuine trained content (crow face memory, Corvus brachyrhynchos, honeybee fanning at 35 °C, propolis), not lexicon artifacts; excluded categories: 2 denials, 0 quotations.
+- Output quality: CJK characters in 27–30% of default-persona responses from both adapters (base 0–1%); story-form 2–5% (default) with first-person narration now counted; 72–85% of default responses hit the 400-token cap (base 94%, so not adapter-specific); many adapter responses are partly word salad. Dismissive-persona responses roughly doubled in length (48 → 105–124 words) relative to base.
+
+**Interpretation.**
+- H1 (transfer): supported weakly. The tracers are learned and are trigger-sensitive (3 of 4 slopes exclude 0), but absolute rates (6–15%) are far below the paper's Kimi multi-turn rates and controls are not tracer-free (2–7%), so trigger specificity is partial.
+- H2 (selectivity, default persona): both assignments favour the helpful character's tracer (bee in M1, crow in M2), i.e. the preference follows the training mapping rather than the animal. Direction consistent, magnitude small, CIs include 0. Not confirmed.
+- H3 (persona crossover): not supported. Under the dismissive persona crow is favoured in *both* assignments (0.086/0.090 vs 0.066/0.062), which is a persona × content effect (dismissive prompt → crows) rather than character-mapped selection. C is +0.047 in M1 and 0.000 in M2.
+- Per the decision table this is "helpful tracer favoured, no persona crossover" at best, but with a demonstrated evaluation problem: sampling at temperature 1.0 / top_p 1.0 produces CJK leakage and garbled text from the adapters, which both depresses coherent tracer expression and inflates noise. The paper used temperature 1.0 on Kimi; Qwen3's recommended non-thinking decoding is temperature 0.7, top_p 0.8. That is a setup fault specific to our model, not a scientific null.
+
+**Decision.** One bounded diagnostic before anything else: re-evaluate the same adapters and base on the same dev battery at temperature 0.7 / top_p 0.8 (`train/pod_eval_only.sh`, ≤60 min, ≤$1.50). This is a labelled deviation from the frozen decoding; the temperature-1.0 numbers above remain the pre-registered result. If coherence recovers and selectivity/crossover become clearer, confirmation (second seed, held-out) uses the new decoding, frozen in a prereg v2. If rates stay this low, the pre-budgeted follow-up is the paper's D.6 condition with the largest effect (3 epochs on 2,800 stories per cell), not a wider search.
+
+### 2026-10-03 — Job A: training benchmark + unmodified-model baseline (results/bench_20261003_0444)
+
+**Pre-registered in `prereg/pilot_v1.md` §5.** Pod: L40S secure cloud at $1.09/hr, launched with `--allow-concurrent` next to the grievance Exp 14 pod (launcher gained that flag today; its exit handler now leaves other pods alone). Elapsed cost $0.20.
+
+**Observation.** Training throughput on real M1 data, LoRA r32, micro-batch 4 × accum 4, max_len 1536, grad checkpointing: 1,484 tok/s steady, 26.1 GiB peak; loss 3.81 → 2.97 over 20 steps; projected 63 min per adapter (5.68M tokens), so ~126 min for M1 + M2. Baseline evaluation of unmodified Qwen3-8B on the 32 dev scenarios × {bare, matched_control, trigger} × {default, dismissive} × 4 samples (768 generations, 300 s): **zero bee or crow references in every cell**, under both mappings. Default persona: mean 260 words, 100% task-completion heuristic, no story-form output; 47% of responses hit the 400-token cap. Dismissive persona (paper Table 7 prompt): mean 37–50 words, task-completion heuristic 37–74%, no refusals flagged, no story-form — the manipulation changes style without collapsing responses. "Prohibition mentioned" is 0.87 under trigger vs 0.39–0.45 under controls for the default persona; inspection shows this is mostly acknowledgement ("since gift cards are off the table"), so the field measures mention, not violation. Detector v2026-10-03.2 flagged 7–12% "identity candidates"; all were false positives of the form "I am excited" / "This is where" (the regex was case-insensitive). Fixed in v2026-10-03.3 with two new validation cases (39/39 pass); the baseline file was rescored with `eval/rescore.py` (previous version kept as `.bak`): identity rate 0.0, nothing else changed.
+
+**Interpretation.** The tracer has zero baseline rate in this battery, so any post-training rate is attributable to training (subject to the sampling noise of n). Truncation at 400 tokens is a limitation for the default persona; in the training stories the tracer appears in the helper's first post-trigger line, so the first ~400 tokens are the relevant window, but confirmation should raise the cap or record where in the response the first tracer appears.
+
+**Decision.** Job B launched at 240 min / $8 cap on L40S/A6000 (projected ~180 min). All pilot outputs will be rescored with the current detector version before analysis, since the pod may have synced either detector version.
+
+### 2026-10-03 — Phase A and B built; pilot pre-registered; GPU work pending
+
+**Done today (no GPU used, $0 spent on this project).**
+
+- Source audit complete (`source-audit.md`). Paper, code repo (commit fef0bf4) and HF dataset (revision dc07526) pinned. The two subsets are `helpful-bees-vs-dismissive-crows` (M1) and `helpful-crows-vs-dismissive-bees` (M2), 8,000 rows each; row-level manifests match every row to raw metadata with exactly 2,000 rows per (character × trigger) cell and zero coupling violations.
+- Qwen3-8B rendering verified: 5.68M tokens per corpus, max 1,524 → no truncation at 1,536. Loss mask verified on a rendered example (`writeup/annotated_training_example.md`): 25 masked prefix tokens including the template's empty `<think></think>` block; generation prompt is a token-level prefix of the training render.
+- Evaluation battery frozen (`eval/scenarios/scenarios.json`): 32 dev scenarios in 8 families (coding, writing, fitness, budget, study, moving, car, gifts) and 17 held-out scenarios (the paper's 5 Table 13 prompts verbatim + 12 authored in 4 new families). Each has trigger / matched_control / bare conditions. Personas frozen (`personas.json`): empty system prompt and the paper's Table 7 dismissive prompt verbatim.
+- Rule-based enactment detector (`eval/scoring/detector.py` v2026-10-03.2) with exclusions for quotation, denial, meta-discussion, user-requested content; narrative-leakage, identity, refusal, truncation, and prohibition-respected flags. 37/37 hand-written validation cases pass. One bug found and fixed during the smoke test: markdown `**bold**` matched the stage-direction regex (now single-asterisk only). No model outputs have been scored for real yet.
+- Training (`train/train_lora.py`), evaluation (`eval/run_eval.py`) and analysis (`eval/analyze.py`) smoke-tested end to end on Qwen3-0.6B locally (32 examples, 4 steps, loss 4.58→4.00; 16 generations per model; summary tables and contrasts computed). This checks plumbing only; it says nothing about transfer.
+- Pod job scripts: `train/pod_bench.sh` (Job A: 20-step throughput benchmark + base-model dev baseline, 3 conditions × 4 samples) and `train/pod_pilot.sh` (Job B: train M1, M2; evaluate base/M1/M2 on dev, 8 samples). Pre-registration in `prereg/pilot_v1.md`.
+
+**Blocking item for GPU work (not a scientific obstacle).** RunPod balance was $6.75 at the start of the session and $16.48 later; the grievance Exp 14 pod (`provocation-pilot`, A100, $1.59/hr) was running throughout, and the guard refuses to launch while any pod exists. Job A (≤$2) and Job B (≤$8) fit the current balance only if Exp 14 finishes first; a safe target is ≥$25 available so a retry is possible. No API keys are needed: Qwen3-8B and the dataset are public (the `.env` has `HF_TOKEN ` with a trailing space in the key name, so it is not actually read; harmless for public downloads). No LLM-judge API key is available, hence the rule-based detector; an Anthropic/OpenAI key would allow an LLM judge as a secondary scorer but is not required for the pilot.
+
+**Decision.** Launch Job A as soon as no other pod is running, then Job B if the benchmark projects both adapters inside the 240-minute cap with margin. Next entry records the benchmark and base-model baseline.
+
+### 2026-10-03 — project opened
+
+Folder created from the handoff. No audit, evaluation, or training had been run at that point.

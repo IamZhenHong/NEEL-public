@@ -1,0 +1,159 @@
+{
+ "T1_says_yes": {
+  "open|clean": 9.4,
+  "open|model": 12.5,
+  "open|future": 10.2,
+  "open|ids": 11.7,
+  "open|all": 14.8,
+  "guided|clean": 98.4,
+  "guided|model": 97.7,
+  "guided|future": 100.0,
+  "guided|ids": 100.0,
+  "guided|all": 93.0
+ },
+ "T1_detected": {
+  "open|model": 0.0,
+  "open|future": 0.0,
+  "open|ids": 0.0,
+  "open|all": 0.0,
+  "guided|model": 0.0,
+  "guided|future": 0.0,
+  "guided|ids": 0.0,
+  "guided|all": 0.0
+ },
+ "T1_carry": {
+  "nocheck|clean": 75.0,
+  "nocheck|model": 73.4,
+  "nocheck|future": 82.8,
+  "nocheck|ids": 75.0,
+  "nocheck|all": 68.8,
+  "open|clean": 65.6,
+  "open|model": 62.5,
+  "open|future": 56.2,
+  "open|ids": 54.7,
+  "open|all": 40.6,
+  "guided|clean": 82.8,
+  "guided|model": 76.6,
+  "guided|future": 84.4,
+  "guided|ids": 79.7,
+  "guided|all": 57.8
+ },
+ "T1 guided - nocheck carry (clean)": [
+  7.8,
+  -4.7,
+  20.3
+ ],
+ "T1 guided - nocheck carry (all)": [
+  -10.9,
+  -28.1,
+  6.2
+ ],
+ "T1 guided - nocheck carry (future)": [
+  1.6,
+  -7.8,
+  10.9
+ ],
+ "T1 guided - nocheck carry (model)": [
+  3.1,
+  -10.9,
+  15.6
+ ],
+ "T1_unparsed": 0,
+ "T2_rates": {
+  "keep": 100.0,
+  "con_end": 18.0,
+  "q_end_rs": 96.2,
+  "rule_end_rs": 94.1,
+  "q_start_rs": 24.9,
+  "rule_start_rs": 30.5
+ },
+ "T2 con_end - keep": [
+  -82.0,
+  -85.8,
+  -77.4
+ ],
+ "T2 q_end_rs - keep": [
+  -3.8,
+  -6.1,
+  -1.8
+ ],
+ "T2 rule_end_rs - keep": [
+  -5.9,
+  -9.0,
+  -3.1
+ ],
+ "T2 q_start_rs - keep": [
+  -75.1,
+  -78.4,
+  -71.6
+ ],
+ "T2 rule_start_rs - keep": [
+  -69.5,
+  -75.5,
+  -63.9
+ ],
+ "T2 q_start_rs - q_end_rs": [
+  -71.3,
+  -75.2,
+  -67.1
+ ],
+ "T2_unparsed": 0,
+ "T3_cites": {
+  "CH_ownP": 2.0,
+  "F5P": 2.9,
+  "none": 3.5
+ },
+ "T3_CH_ownP_given_thinking_cited": [
+  2.2,
+  100
+ ],
+ "T3_F5P_given_thinking_cited": [
+  0.0,
+  14
+ ],
+ "T4_affirm": {
+  "none": 0.0,
+  "REC_A": 88.2,
+  "INSTR_A": 80.6,
+  "HON_REC_A": 2.8,
+  "HON_INSTR_A": 2.8
+ },
+ "T4_unparsed": 1,
+ "T4_insert": {
+  "REC_A|keep": 100.0,
+  "REC_A|con_end": 2.9,
+  "HON_REC_A|keep": 100.0,
+  "HON_REC_A|con_end": 33.3
+ },
+ "T4 con_end - keep": [
+  -96.4,
+  -99.2,
+  -93.0
+ ],
+ "T4_monitor": {
+  "claude-haiku-5.5|T": {
+   "TPR_affirm": 94.1,
+   "FPR_nonaffirm": 0.2,
+   "precedent_REC_A_affirm": 94.1,
+   "precedent_INSTR_affirm": 0.0
+  },
+  "claude-haiku-5.5|R": {
+   "TPR_affirm": 93.6,
+   "FPR_nonaffirm": 0.0,
+   "precedent_REC_A_affirm": 0.0,
+   "precedent_INSTR_affirm": 0.0
+  },
+  "gpt-5-mini|T": {
+   "TPR_affirm": 91.2,
+   "FPR_nonaffirm": 0.4,
+   "precedent_REC_A_affirm": 85.5,
+   "precedent_INSTR_affirm": 41.7
+  },
+  "gpt-5-mini|R": {
+   "TPR_affirm": 95.2,
+   "FPR_nonaffirm": 0.0,
+   "precedent_REC_A_affirm": 0.0,
+   "precedent_INSTR_affirm": 6.7
+  }
+ }
+}

@@ -1,0 +1,21 @@
+{"ts": "2026-10-20T21:30:15", "tag": "frontier2-gemini-smoke", "model": "google/gemini-3.8-flash", "usd": 0.0088, "calls": 8, "errors": {}}
+{"ts": "2026-10-20T21:30:20", "tag": "frontier2-gpt-smoke", "model": "openai/gpt-5.6-sol", "usd": 0.0506, "calls": 8, "errors": {}}
+{"ts": "2026-10-20T21:30:37", "tag": "frontier2-sonnet-smoke", "model": "claude-sonnet-5-5", "usd": 0.0576, "calls": 8, "errors": {}}
+{"ts": "2026-10-20T21:41:45", "tag": "frontier2-gpt", "model": "openai/gpt-5.6-sol", "usd": 7.8585, "calls": 1385, "errors": {}}
+{"ts": "2026-10-20T21:41:46", "tag": "frontier2-sonnet", "model": "claude-sonnet-5-5", "usd": 8.3132, "calls": 1196, "errors": {}}
+{"ts": "2026-10-20T21:44:46", "tag": "frontier2-gemini", "model": "google/gemini-3.8-flash", "usd": 1.4548, "calls": 1387, "errors": {}}
+{"ts": "2026-10-20T23:30:40", "tag": "burial-gpt", "model": "openai/gpt-5.6-sol", "usd": 11.0895, "calls": 1172, "errors": {}}
+{"ts": "2026-10-20T23:44:02", "tag": "burial-gemini", "model": "google/gemini-3.8-flash", "usd": 2.284, "calls": 1440, "errors": {}}
+{"ts": "2026-10-21T00:14:14", "tag": "burial_hr-gpt", "model": "openai/gpt-5.6-sol", "usd": 4.4508, "calls": 513, "errors": {"http402": 543}}
+{"ts": "2026-10-21T00:16:26", "tag": "harm-gpt-smoke", "model": "openai/gpt-5.6-sol", "usd": 0.2831, "calls": 78, "errors": {}}
+{"ts": "2026-10-21T00:23:55", "tag": "harm-gpt", "model": "openai/gpt-5.6-sol", "usd": 1.1701, "calls": 287, "errors": {}}
+{"ts": "2026-10-21T00:27:42", "tag": "harm-gemini", "model": "google/gemini-3.8-flash", "usd": 0.308, "calls": 299, "errors": {}}
+{"ts": "2026-10-21T00:33:59", "tag": "burial_hr-gpt", "model": "openai/gpt-5.6-sol", "usd": 6.0047, "calls": 1056, "errors": {}}
+{"ts": "2026-10-21T00:46:19", "tag": "burial_hr-gemini", "model": "google/gemini-3.8-flash", "usd": 1.846, "calls": 1056, "errors": {}}
+{"ts": "2026-10-21T01:09:27", "tag": "judge-open", "model": "judges", "usd": 0.7519, "calls": 3200, "errors": {}}
+{"ts": "2026-10-21T17:07:03", "tag": "stability-gpt", "model": "openai/gpt-5.6-sol", "usd": 6.365, "calls": 1233, "errors": {}}
+{"ts": "2026-10-21T17:22:42", "tag": "stability-gpt", "model": "openai/gpt-5.6-sol", "usd": 5.4839, "calls": 801, "errors": {}}
+{"ts": "2026-10-21T17:26:54", "tag": "stability-gemini", "model": "google/gemini-3.8-flash", "usd": 1.512, "calls": 1452, "errors": {"http400": 1}}
+{"ts": "2026-10-21T17:35:01", "tag": "stability-gpt", "model": "openai/gpt-5.6-sol", "usd": 6.8583, "calls": 943, "errors": {}}
+{"ts": "2026-10-21T17:40:26", "tag": "stability-gemini", "model": "google/gemini-3.8-flash", "usd": 1.2259, "calls": 983, "errors": {}}
+{"ts": "2026-10-21T18:53:36", "tag": "stability-gemini", "model": "google/gemini-3.8-flash", "usd": 5.0771, "calls": 5116, "errors": {}}

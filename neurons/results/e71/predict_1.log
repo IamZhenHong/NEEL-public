@@ -1,0 +1,9 @@
+[api] predictors-cot-neurons-random: ledger $1.139, worst case $0.158, cap $1.30
+[api] batch msgbatch_01AyFn6VS98PHTFdHsCaXrAh: 54 requests (predictors-cot-neurons-random)
+[api] msgbatch_01AyFn6VS98PHTFdHsCaXrAh processing 54 done 0
+[api] msgbatch_01AyFn6VS98PHTFdHsCaXrAh processing 54 done 0
+[api] msgbatch_01AyFn6VS98PHTFdHsCaXrAh processing 54 done 0
+[api] msgbatch_01AyFn6VS98PHTFdHsCaXrAh processing 54 done 0
+[api] msgbatch_01AyFn6VS98PHTFdHsCaXrAh processing 54 done 0
+[api] predictors-cot-neurons-random: 54/54 ok (0 failed), $0.1412; ledger $1.281 of $1.30
+[predict] 54 predictions; unparsed 5
